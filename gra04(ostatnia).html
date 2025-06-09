@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gra</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: white;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    .blok {
+      border: 2px solid black;
+      margin: 15px auto;
+      padding: 10px;
+      width: 80%;
+      font-weight: bold;
+      background: white;
+    }
+    textarea {
+      width: 80%;
+      height: 80px;
+      margin: 15px auto;
+      display: block;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #btnGraj, #btnZagrajPonownie {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      font-size: 20px;
+      font-weight: bold;
+      padding: 15px 30px;
+      margin-bottom: 20px;
+    }
+    #btnZagrajPonownie {
+      display: none; /* na start ukryty */
+    }
+    #rekordy {
+      margin-top: 20px;
+    }
+    table {
+      margin: 0 auto;
+      border-collapse: collapse;
+    }
+    td, th {
+      border: 1px solid black;
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Gra w przepisywanie</h2>
+
+  <button id="btnGraj">Graj</button>
+  <button id="btnZagrajPonownie">Zagraj ponownie</button>
+
+  <div class="blok" id="tekst"></div>
+
+  <textarea id="pole" placeholder="Przepisz tutaj..." disabled></textarea>
+
+  <div>
+    <button onclick="sprawdz()" id="btnSprawdz" disabled>Sprawdź</button>
+  </div>
+
+  <div>
+    <div class="info" id="punkty">Punkty: 0</div>
+    <div class="info" id="czas">Czas: 60s</div>
+  </div>
+
+  <div id="rekordy" style="display:none;">
+    <h3>Twój wynik: <span id="koncowyWynik"></span></h3>
+    <h4>Najlepsze wyniki:</h4>
+    <table>
+      <thead>
+        <tr><th>Pozycja</th><th>Imię</th><th>Punkty</th></tr>
+      </thead>
+      <tbody id="tabelaWynikow"></tbody>
+    </table>
+  </div>
+
+<script>
+const teksty = [
+  "Ala ma kota i lubi go głaskać",
+  "Programuję sobie w języku PHP",
+  "Dzisiaj jest bardzo ciepły dzień",
+  "Lubię chodzić na spacery w lesie",
+  "Mój rower stoi przed domem teraz",
+  "Wczoraj padał deszcz cały wieczór",
+  "Kawa z mlekiem to mój ulubiony napój",
+  "Czytasz książkę o przygodach kota?",
+  "Zawsze jem śniadanie przed szkołą",
+  "Zegarek pokazuje już dziewiątą",
+  "W weekend jadę do babci na wieś",
+  "Czwartek to mój ulubiony dzień",
+  "Zima przyszła niespodziewanie wcześnie",
+  "Lubię uczyć się języków obcych",
+  "Moje hobby to gra na gitarze",
+  "Często chodzę na siłownię wieczorem",
+  "Pies szczeka głośno przy płocie",
+  "Mama piecze ciasto czekoladowe",
+  "Księżyc świeci jasno na niebie",
+  "Idziemy dzisiaj na lody do miasta"
+];
+
+let punkty = 0;
+let czas = 60;
+let timer;
+let graAktywna = false;
+
+function losujTekst() {
+  const los = Math.floor(Math.random() * teksty.length);
+  return teksty[los];
+}
+
+function nowyTekst() {
+  document.getElementById("tekst").innerText = losujTekst();
+  document.getElementById("pole").value = "";
+}
+
+function startTimer() {
+  timer = setInterval(() => {
+    czas--;
+    document.getElementById("czas").innerText = "Czas: " + czas + "s";
+    if (czas <= 0) {
+      clearInterval(timer);
+      koniecGry();
+    }
+  }, 1000);
+}
+
+function sprawdz() {
+  if (!graAktywna) return;
+  const oryginal = document.getElementById("tekst").innerText.trim();
+  const wpisane = document.getElementById("pole").value.trim();
+  if (oryginal === wpisane) {
+    punkty++;
+    document.getElementById("punkty").innerText = "Punkty: " + punkty;
+    nowyTekst();
+  } else {
+    alert("Błąd! Spróbuj ponownie.");
+  }
+}
+
+function koniecGry() {
+  graAktywna = false;
+  clearInterval(timer);
+  alert("Koniec czasu!");
+
+  const stareRekordy = JSON.parse(localStorage.getItem("rekordy")) || [];
+  const maxDotychczas = Math.max(...stareRekordy.map(r => r.punkty), 0);
+
+  if (punkty > 0) {
+    const imie = prompt("Podaj swoje imię:");
+    if (imie) {
+      if (punkty > maxDotychczas) {
+        alert("Brawo! Pobiłeś rekord!");
+      }
+      zapiszRekord(imie, punkty);
+    }
+  }
+
+  document.getElementById("koncowyWynik").innerText = punkty;
+  pokazRekordy();
+
+  // pokaż przycisk "Zagraj ponownie"
+  document.getElementById("btnZagrajPonownie").style.display = "inline-block";
+  // ukryj przycisk "Graj"
+  document.getElementById("btnGraj").style.display = "none";
+
+  document.getElementById("pole").disabled = true;
+  document.getElementById("btnSprawdz").disabled = true;
+}
+
+function zapiszRekord(imie, wynik) {
+  let rekordy = JSON.parse(localStorage.getItem("rekordy")) || [];
+  rekordy.push({ imie: imie, punkty: wynik });
+  rekordy.sort((a, b) => b.punkty - a.punkty);
+  rekordy = rekordy.slice(0, 5); // top 5
+  localStorage.setItem("rekordy", JSON.stringify(rekordy));
+}
+
+function pokazRekordy() {
+  const tabela = document.getElementById("tabelaWynikow");
+  tabela.innerHTML = "";
+  const rekordy = JSON.parse(localStorage.getItem("rekordy")) || [];
+  rekordy.forEach((rek, i) => {
+    const row = `<tr><td>${i + 1}</td><td>${rek.imie}</td><td>${rek.punkty}</td></tr>`;
+    tabela.innerHTML += row;
+  });
+  document.getElementById("rekordy").style.display = "block";
+}
+
+function startGame() {
+  punkty = 0;
+  czas = 60;
+  graAktywna = true;
+  document.getElementById("punkty").innerText = "Punkty: 0";
+  document.getElementById("czas").innerText = "Czas: 60s";
+  document.getElementById("rekordy").style.display = "none";
+  nowyTekst();
+  startTimer();
+  document.getElementById("pole").disabled = false;
+  document.getElementById("btnSprawdz").disabled = false;
+  document.getElementById("pole").focus();
+}
+
+document.getElementById("btnGraj").onclick = function() {
+  startGame();
+  this.style.display = "none"; // ukryj przycisk graj po starcie
+  document.getElementById("btnZagrajPonownie").style.display = "none";
+};
+
+document.getElementById("btnZagrajPonownie").onclick = function() {
+  startGame();
+  this.style.display = "none"; // ukryj przycisk zagraj ponownie po starcie
+  document.getElementById("btnGraj").style.display = "none";
+};
+
+// na start blokujemy textarea i przycisk sprawdz
+window.onload = () => {
+  document.getElementById("pole").disabled = true;
+  document.getElementById("btnSprawdz").disabled = true;
+  document.getElementById("btnZagrajPonownie").style.display = "none";
+};
+</script>
+
+</body>
+</html>
